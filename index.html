@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<a href="{{ url_for('add_match') }}">+ Nova Partida</a>
+<a href="{{ url_for('clear_data') }}">Limpar Dados</a>
+
+
+
+<table>
+    <tr>
+        <th>Personagens</th>
+        <th>Vitórias</th>
+        <th>Partidas</th>
+        <th>Uso</th>
+        <th>Winrate</th>
+    </tr>
+    {% for char in chars %}
+    <tr>
+        <td>{{ char }}</td>
+        <td>{{ stats[char].wins }}</td>
+        <td>{{ stats[char].matches}}</td>
+        <td>{{ stats[char].usage }}</td>
+        <td>{{ stats[char.winRate}}</td>
+    </tr>
+</table>
+
+{% endblock %}
+

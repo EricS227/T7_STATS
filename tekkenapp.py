@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort
 import json, os
 from utils import TEKKEN_CHARS, calculate_stats
 
@@ -44,6 +44,27 @@ def add_match():
     
     return render_template("add_match.html", chars=TEKKEN_CHARS)
 
+
+
+
+RENDER_PATHS = [
+    "static/renders"
+    "static/renders/tekken7",
+    "static/renders/tekken8"
+]
+
+@app.route("/render/<name>")
+
+def get_render(name):
+    name = name.lower() + ".png"
+
+    for path in RENDER_PATHS:
+        full_path = os.path.join(path, name)
+        if os.path.exists(full_path):
+            return send_from_directory(path, name)
+        
+
+    return send_from_directory("static/renders", "default.png")
 
 @app.route('/clear')
 def clear_data():

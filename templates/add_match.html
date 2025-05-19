@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+
+<form method="POST">
+    <label name="player1">
+        <select name="player1">
+            {% for char in chars %}
+            <option value="{{ char }}">{{ char }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Player 2:</label>
+        <select name="player2">
+            {% for char in chars %}
+            <option value="{{ char }}">{{ char }}</option>
+            {% endfor %}
+        </select>
+
+        <label|>Winner:</label>
+        <select name="winner">
+            {% for char in chars %}
+            <option value="{{ char }}">{{ char }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Salvar</button>
+    </form>
+
+    <a href="{{ url_for('index') }}">← Voltar</a>
+    {% endblock %}
+
+    

@@ -21,8 +21,9 @@
         <td>{{ stats[char].wins }}</td>
         <td>{{ stats[char].matches}}</td>
         <td>{{ stats[char].usage }}</td>
-        <td>{{ stats[char.winRate}}</td>
+        <td>{{stats[char]["winRate"]}}</td>
     </tr>
+    {% endfor %}
 </table>
 
 {% endblock %}

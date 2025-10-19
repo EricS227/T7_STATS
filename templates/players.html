@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="nav-links">
+    <a href="{{ url_for('index') }}">← Home</a>
+    <a href="{{ url_for('character_stats') }}">📊 Character Stats</a>
+    <a href="{{ url_for('matchups') }}">⚔️ Matchups</a>
+    <a href="{{ url_for('add_player') }}">+ Add Player</a>
+</div>
+
+<h2>Player Leaderboard</h2>
+
+<table>
+    <tr>
+        <th>Rank</th>
+        <th>Player</th>
+        <th>Main Character</th>
+        <th>Tekken Rank</th>
+        <th>Region</th>
+        <th>Wins</th>
+        <th>Losses</th>
+        <th>Total Matches</th>
+        <th>Winrate</th>
+    </tr>
+    {% for ranking in player_rankings %}
+    <tr>
+        <td class="rank-badge">#{{ loop.index }}</td>
+        <td><a href="{{ url_for('player_profile', player_id=ranking.player.id) }}">{{ ranking.player.name }}</a></td>
+        <td>{{ ranking.player.main_char }}</td>
+        <td>{{ ranking.player.rank }}</td>
+        <td>{{ ranking.player.region }}</td>
+        <td class="wins">{{ ranking.stats.wins }}</td>
+        <td class="losses">{{ ranking.stats.losses }}</td>
+        <td>{{ ranking.stats.total_matches }}</td>
+        <td class="winrate">{{ ranking.stats.winrate }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if not player_rankings %}
+<div class="empty-state">
+    <p>No players registered yet.</p>
+    <a href="{{ url_for('add_player') }}" class="button">Add Your First Player</a>
+</div>
+{% endif %}
+
+{% endblock %}

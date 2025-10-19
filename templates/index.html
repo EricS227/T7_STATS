@@ -2,29 +2,128 @@
 
 {% block content %}
 
-<a href="{{ url_for('add_match') }}">+ Nova Partida</a>
-<a href="{{ url_for('clear_data') }}">Limpar Dados</a>
+<div class="nav-links">
+    <a href="{{ url_for('character_stats') }}">📊 Character Stats</a>
+    <a href="{{ url_for('players_list') }}">👥 Players</a>
+    <a href="{{ url_for('matchups') }}">⚔️ Matchups</a>
+    <a href="{{ url_for('add_match') }}">+ Add Match</a>
+    <a href="{{ url_for('add_player') }}">+ Add Player</a>
+    <a href="{{ url_for('clear_data') }}" style="color: #ff3c28;">Clear Data</a>
+</div>
 
+<div class="stats-overview">
+    <div class="stat-card">
+        <h3>Total Matches</h3>
+        <p class="stat-number">{{ matches|length }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>Total Players</h3>
+        <p class="stat-number">{{ total_players }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>Active Characters</h3>
+        <p class="stat-number">{{ stats.values()|selectattr('matches', 'gt', 0)|list|length }}</p>
+    </div>
+</div>
 
+{% if top_players %}
+<div class="section">
+    <h2>Top Players</h2>
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Main</th>
+            <th>Wins</th>
+            <th>Matches</th>
+            <th>Winrate</th>
+        </tr>
+        {% for ranking in top_players %}
+        <tr>
+            <td>#{{ loop.index }}</td>
+            <td><a href="{{ url_for('player_profile', player_id=ranking.player.id) }}">{{ ranking.player.name }}</a></td>
+            <td>{{ ranking.player.main_char }}</td>
+            <td>{{ ranking.stats.wins }}</td>
+            <td>{{ ranking.stats.total_matches }}</td>
+            <td>{{ ranking.stats.winrate }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="{{ url_for('players_list') }}" class="view-all">View All Players →</a>
+</div>
+{% endif %}
 
-<table>
-    <tr>
-        <th>Personagens</th>
-        <th>Vitórias</th>
-        <th>Partidas</th>
-        <th>Uso</th>
-        <th>Winrate</th>
-    </tr>
-    {% for char in chars %}
-    <tr>
-        <td>{{ char }}</td>
-        <td>{{ stats[char].wins }}</td>
-        <td>{{ stats[char].matches}}</td>
-        <td>{{ stats[char].usage }}</td>
-        <td>{{stats[char]["winRate"]}}</td>
-    </tr>
-    {% endfor %}
-</table>
+<div class="section">
+    <h2>Character Statistics</h2>
+    <canvas id="charChart" width="400" height="200"></canvas>
+
+    <table>
+        <tr>
+            <th>Character</th>
+            <th>Wins</th>
+            <th>Matches</th>
+            <th>Usage</th>
+            <th>Winrate</th>
+        </tr>
+        {% for char in chars %}
+        {% if stats[char].matches > 0 %}
+        <tr>
+            <td>{{ char }}</td>
+            <td>{{ stats[char].wins }}</td>
+            <td>{{ stats[char].matches}}</td>
+            <td>{{ stats[char].usage }}</td>
+            <td>{{stats[char]["winRate"]}}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Fetch data and create chart
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('charChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Win Rate %',
+                        data: data.winrates,
+                        backgroundColor: 'rgba(255, 60, 40, 0.6)',
+                        borderColor: 'rgba(255, 60, 40, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        title: {
+                            display: true,
+                            text: 'Character Win Rates'
+                        }
+                    }
+                }
+            });
+        });
+</script>
 
 {% endblock %}
 

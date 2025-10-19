@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="nav-links">
+    <a href="{{ url_for('index') }}">← Home</a>
+</div>
+
+<h1>Character Statistics</h1>
+
+<div class="stats-tabs">
+    <button class="tab-btn active" onclick="showTab('winrates')">Win Rates</button>
+    <button class="tab-btn" onclick="showTab('popularity')">Popularity</button>
+    <button class="tab-btn" onclick="showTab('overview')">Overview</button>
+</div>
+
+<!-- Filters -->
+<div class="filters-section">
+    <div class="filter-group">
+        <label for="minMatches">Minimum Matches:</label>
+        <select id="minMatches" onchange="applyFilters()">
+            <option value="0">All Characters</option>
+            <option value="1" selected>1+</option>
+            <option value="5">5+</option>
+            <option value="10">10+</option>
+            <option value="20">20+</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label for="sortBy">Sort By:</label>
+        <select id="sortBy" onchange="applyFilters()">
+            <option value="winrate">Win Rate (High to Low)</option>
+            <option value="winrate-asc">Win Rate (Low to High)</option>
+            <option value="popularity">Popularity (Most Used)</option>
+            <option value="matches">Total Matches</option>
+            <option value="name">Character Name</option>
+        </select>
+    </div>
+</div>
+
+<!-- Tab 1: Win Rates -->
+<div id="winrates-tab" class="tab-content active">
+    <div class="section">
+        <h2>Character Win Rates</h2>
+        <p class="description">Win rate statistics for all Tekken 7 characters. Higher percentages indicate stronger performance.</p>
+
+        <canvas id="winrateChart" width="400" height="200"></canvas>
+
+        <table id="winrateTable">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Character</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Total Matches</th>
+                    <th>Win Rate</th>
+                    <th>Trend</th>
+                </tr>
+            </thead>
+            <tbody id="winrateTableBody">
+                <!-- Populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tab 2: Popularity -->
+<div id="popularity-tab" class="tab-content">
+    <div class="section">
+        <h2>Character Popularity</h2>
+        <p class="description">Most played characters based on total usage across all matches.</p>
+
+        <div class="chart-container">
+            <canvas id="popularityPieChart" width="400" height="400"></canvas>
+        </div>
+
+        <canvas id="popularityBarChart" width="400" height="200"></canvas>
+
+        <table id="popularityTable">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Character</th>
+                    <th>Times Played</th>
+                    <th>Pick Rate</th>
+                    <th>Popularity Bar</th>
+                </tr>
+            </thead>
+            <tbody id="popularityTableBody">
+                <!-- Populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tab 3: Overview -->
+<div id="overview-tab" class="tab-content">
+    <div class="section">
+        <h2>Complete Overview</h2>
+        <p class="description">Comprehensive statistics showing both win rates and popularity.</p>
+
+        <div class="stats-grid" id="statsGrid">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let allCharacterData = [];
+let currentTab = 'winrates';
+let winrateChartInstance = null;
+let popularityPieChartInstance = null;
+let popularityBarChartInstance = null;
+
+// Fetch data on page load
+fetch('/api/character-usage')
+    .then(response => response.json())
+    .then(data => {
+        allCharacterData = data;
+        applyFilters();
+    });
+
+function showTab(tabName) {
+    currentTab = tabName;
+
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    document.getElementById(tabName + '-tab').classList.add('active');
+    event.target.classList.add('active');
+
+    // Refresh the active tab
+    applyFilters();
+}
+
+function applyFilters() {
+    const minMatches = parseInt(document.getElementById('minMatches').value);
+    const sortBy = document.getElementById('sortBy').value;
+
+    // Filter data
+    let filteredData = allCharacterData.filter(char => char.matches >= minMatches);
+
+    // Sort data
+    filteredData.sort((a, b) => {
+        switch(sortBy) {
+            case 'winrate':
+                return parseFloat(b.winRate) - parseFloat(a.winRate);
+            case 'winrate-asc':
+                return parseFloat(a.winRate) - parseFloat(b.winRate);
+            case 'popularity':
+                return b.usage - a.usage;
+            case 'matches':
+                return b.matches - a.matches;
+            case 'name':
+                return a.character.localeCompare(b.character);
+            default:
+                return 0;
+        }
+    });
+
+    // Update current tab
+    if (currentTab === 'winrates') {
+        updateWinRatesTab(filteredData);
+    } else if (currentTab === 'popularity') {
+        updatePopularityTab(filteredData);
+    } else if (currentTab === 'overview') {
+        updateOverviewTab(filteredData);
+    }
+}
+
+function updateWinRatesTab(data) {
+    // Update table
+    const tbody = document.getElementById('winrateTableBody');
+    tbody.innerHTML = '';
+
+    data.forEach((char, index) => {
+        const losses = char.matches - char.wins;
+        const winRateNum = parseFloat(char.winRate);
+        const trend = winRateNum >= 60 ? '📈' : winRateNum >= 40 ? '➡️' : '📉';
+
+        const row = `
+            <tr>
+                <td class="rank-badge">#${index + 1}</td>
+                <td><strong>${char.character}</strong></td>
+                <td class="wins">${char.wins}</td>
+                <td class="losses">${losses}</td>
+                <td>${char.matches}</td>
+                <td class="winrate">${char.winRate}</td>
+                <td>${trend}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+
+    // Update chart
+    updateWinRateChart(data);
+}
+
+function updateWinRateChart(data) {
+    const ctx = document.getElementById('winrateChart').getContext('2d');
+
+    if (winrateChartInstance) {
+        winrateChartInstance.destroy();
+    }
+
+    const topData = data.slice(0, 15); // Top 15 characters
+
+    winrateChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: topData.map(c => c.character),
+            datasets: [{
+                label: 'Win Rate %',
+                data: topData.map(c => parseFloat(c.winRate)),
+                backgroundColor: topData.map(c => {
+                    const wr = parseFloat(c.winRate);
+                    if (wr >= 60) return 'rgba(76, 175, 80, 0.8)';
+                    if (wr >= 50) return 'rgba(255, 167, 38, 0.8)';
+                    return 'rgba(244, 67, 54, 0.8)';
+                }),
+                borderColor: 'rgba(255, 60, 40, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { callback: value => value + '%' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Top 15 Characters by Win Rate',
+                    color: '#ff3c28'
+                }
+            }
+        }
+    });
+}
+
+function updatePopularityTab(data) {
+    // Calculate total usage
+    const totalUsage = data.reduce((sum, char) => sum + char.usage, 0);
+
+    // Update table
+    const tbody = document.getElementById('popularityTableBody');
+    tbody.innerHTML = '';
+
+    // Sort by usage for popularity
+    const sortedByUsage = [...data].sort((a, b) => b.usage - a.usage);
+
+    sortedByUsage.forEach((char, index) => {
+        const pickRate = ((char.usage / totalUsage) * 100).toFixed(1);
+        const barWidth = Math.max(5, pickRate * 5);
+
+        const row = `
+            <tr>
+                <td class="rank-badge">#${index + 1}</td>
+                <td><strong>${char.character}</strong></td>
+                <td>${char.usage}</td>
+                <td>${pickRate}%</td>
+                <td>
+                    <div class="popularity-bar-container">
+                        <div class="popularity-bar" style="width: ${barWidth}%"></div>
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+
+    // Update charts
+    updatePopularityCharts(sortedByUsage, totalUsage);
+}
+
+function updatePopularityCharts(data, totalUsage) {
+    const topData = data.slice(0, 10);
+
+    // Pie Chart
+    const pieCtx = document.getElementById('popularityPieChart').getContext('2d');
+    if (popularityPieChartInstance) {
+        popularityPieChartInstance.destroy();
+    }
+
+    popularityPieChartInstance = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: topData.map(c => c.character),
+            datasets: [{
+                data: topData.map(c => c.usage),
+                backgroundColor: [
+                    '#ff3c28', '#ff5722', '#ffa726', '#ffb74d',
+                    '#4caf50', '#66bb6a', '#42a5f5', '#64b5f6',
+                    '#ab47bc', '#ba68c8'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Top 10 Most Popular Characters',
+                    color: '#ff3c28'
+                },
+                legend: {
+                    position: 'right',
+                    labels: { color: '#ffffff' }
+                }
+            }
+        }
+    });
+
+    // Bar Chart
+    const barCtx = document.getElementById('popularityBarChart').getContext('2d');
+    if (popularityBarChartInstance) {
+        popularityBarChartInstance.destroy();
+    }
+
+    popularityBarChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: topData.map(c => c.character),
+            datasets: [{
+                label: 'Times Played',
+                data: topData.map(c => c.usage),
+                backgroundColor: 'rgba(255, 167, 38, 0.8)',
+                borderColor: 'rgba(255, 167, 38, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+function updateOverviewTab(data) {
+    const grid = document.getElementById('statsGrid');
+    grid.innerHTML = '';
+
+    data.forEach((char, index) => {
+        const losses = char.matches - char.wins;
+        const winRateNum = parseFloat(char.winRate);
+        const statusClass = winRateNum >= 55 ? 'strong' : winRateNum >= 45 ? 'balanced' : 'weak';
+
+        const card = `
+            <div class="char-stat-card ${statusClass}">
+                <div class="char-header">
+                    <h3>#${index + 1} ${char.character}</h3>
+                    <span class="winrate-badge">${char.winRate}</span>
+                </div>
+                <div class="char-stats">
+                    <div class="stat">
+                        <span class="stat-label">Matches:</span>
+                        <span class="stat-value">${char.matches}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Wins:</span>
+                        <span class="stat-value wins">${char.wins}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Losses:</span>
+                        <span class="stat-value losses">${losses}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Usage:</span>
+                        <span class="stat-value">${char.usage} times</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        grid.innerHTML += card;
+    });
+}
+</script>
+
+{% endblock %}

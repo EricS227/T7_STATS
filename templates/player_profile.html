@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="nav-links">
+    <a href="{{ url_for('players_list') }}">← Back to Players</a>
+</div>
+
+<div class="player-header">
+    <h1>{{ player.name }}</h1>
+    <div class="player-info">
+        <span class="badge">{{ player.main_char }}</span>
+        <span class="badge">{{ player.rank }}</span>
+        <span class="badge">{{ player.region }}</span>
+    </div>
+</div>
+
+<div class="stats-overview">
+    <div class="stat-card">
+        <h3>Total Matches</h3>
+        <p class="stat-number">{{ stats.total_matches }}</p>
+    </div>
+    <div class="stat-card wins-card">
+        <h3>Wins</h3>
+        <p class="stat-number">{{ stats.wins }}</p>
+    </div>
+    <div class="stat-card losses-card">
+        <h3>Losses</h3>
+        <p class="stat-number">{{ stats.losses }}</p>
+    </div>
+    <div class="stat-card">
+        <h3>Win Rate</h3>
+        <p class="stat-number">{{ stats.winrate }}</p>
+    </div>
+</div>
+
+{% if stats.character_stats %}
+<div class="section">
+    <h2>Character Usage</h2>
+    <table>
+        <tr>
+            <th>Character</th>
+            <th>Matches</th>
+            <th>Wins</th>
+            <th>Win Rate</th>
+        </tr>
+        {% for char, char_stats in stats.character_stats.items() %}
+        <tr>
+            <td>{{ char }}</td>
+            <td>{{ char_stats.matches }}</td>
+            <td>{{ char_stats.wins }}</td>
+            <td>{{ "%.1f"|format((char_stats.wins / char_stats.matches * 100) if char_stats.matches > 0 else 0) }}%</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+{% if stats.recent_matches %}
+<div class="section">
+    <h2>Recent Matches</h2>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Character</th>
+            <th>vs</th>
+            <th>Opponent Char</th>
+            <th>Result</th>
+        </tr>
+        {% for match in stats.recent_matches %}
+        <tr>
+            <td>{{ match.timestamp[:10] if match.timestamp else 'N/A' }}</td>
+            <td>{{ match.player1_char if match.player1_id == player.id else match.player2_char }}</td>
+            <td>VS</td>
+            <td>{{ match.player2_char if match.player1_id == player.id else match.player1_char }}</td>
+            <td class="{% if match.winner_id == player.id %}win{% else %}loss{% endif %}">
+                {{ 'WIN' if match.winner_id == player.id else 'LOSS' }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+
+{% endblock %}

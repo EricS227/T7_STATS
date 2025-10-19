@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="nav-links">
+    <a href="{{ url_for('index') }}">← Home</a>
+</div>
+
+<h2>Character Matchup Statistics</h2>
+
+<p class="description">Analyze how different characters perform against each other based on match history.</p>
+
+<table>
+    <tr>
+        <th>Matchup</th>
+        <th>Total Matches</th>
+        <th>Character 1 Wins</th>
+        <th>Character 2 Wins</th>
+        <th>Win Rate Split</th>
+    </tr>
+    {% for matchup in matchups %}
+    <tr>
+        <td class="matchup-cell">
+            <strong>{{ matchup.char1 }}</strong> vs <strong>{{ matchup.char2 }}</strong>
+        </td>
+        <td>{{ matchup.total }}</td>
+        <td class="wins">{{ matchup.char1_wins }}</td>
+        <td class="wins">{{ matchup.char2_wins }}</td>
+        <td>
+            <div class="winrate-bar">
+                <div class="char1-bar" style="width: {{ matchup.char1_winrate }}">
+                    {{ matchup.char1_winrate }}
+                </div>
+                <div class="char2-bar" style="width: {{ matchup.char2_winrate }}">
+                    {{ matchup.char2_winrate }}
+                </div>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if not matchups %}
+<div class="empty-state">
+    <p>No matchup data available yet. Add more matches to see character matchup statistics!</p>
+    <a href="{{ url_for('add_match') }}" class="button">Add Match</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Add New Player</h2>
+
+<form method="POST">
+    <label>Player ID (unique):</label>
+    <input type="text" name="player_id" required placeholder="e.g., player123">
+
+    <label>Player Name:</label>
+    <input type="text" name="name" required placeholder="e.g., JohnDoe">
+
+    <label>Main Character:</label>
+    <select name="main_char" required>
+        <option value="">Select Character</option>
+        {% for char in chars %}
+        <option value="{{ char }}">{{ char }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Current Rank:</label>
+    <select name="rank" required>
+        <option value="">Select Rank</option>
+        {% for rank in ranks %}
+        <option value="{{ rank }}">{{ rank }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Region:</label>
+    <select name="region" required>
+        <option value="">Select Region</option>
+        {% for region in regions %}
+        <option value="{{ region }}">{{ region }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Add Player</button>
+</form>
+
+<a href="{{ url_for('players_list') }}">← Back to Players</a>
+
+{% endblock %}

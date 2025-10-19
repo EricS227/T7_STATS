@@ -1,60 +1,93 @@
 {% extends "base.html" %}
 {% block content %}
 
+<h2>Add New Match</h2>
+
 <form method="POST">
-    <label name="player1">
-        <select name="player1" name="player1" onchange="updateWinnerOptions()">
+    <div class="form-group">
+        <label>Player 1:</label>
+        <select name="player1_id" id="player1_id" required onchange="updateWinnerOptions()">
+            <option value="">Select Player</option>
+            {% for player in players %}
+            <option value="{{ player.id }}">{{ player.name }} ({{ player.main_char }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Player 1 Character:</label>
+        <select name="player1_char" id="player1_char" required>
+            <option value="">Select Character</option>
             {% for char in chars %}
             <option value="{{ char }}">{{ char }}</option>
             {% endfor %}
         </select>
+    </div>
 
+    <div class="form-group">
         <label>Player 2:</label>
-        <select name="player2" name="player2" onchange="updateWinnerOptions()">
+        <select name="player2_id" id="player2_id" required onchange="updateWinnerOptions()">
+            <option value="">Select Player</option>
+            {% for player in players %}
+            <option value="{{ player.id }}">{{ player.name }} ({{ player.main_char }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Player 2 Character:</label>
+        <select name="player2_char" id="player2_char" required>
+            <option value="">Select Character</option>
             {% for char in chars %}
             <option value="{{ char }}">{{ char }}</option>
             {% endfor %}
         </select>
+    </div>
 
-        <label|>Winner:</label>
-        <select name="winner">
-            {% for char in chars %}
-            <option value="{{ char }}">{{ char }}</option>
-            {% endfor %}
+    <div class="form-group">
+        <label>Winner:</label>
+        <select name="winner_id" id="winner_id" required>
+            <option value="">Select Winner</option>
         </select>
+    </div>
 
-        <button type="submit">Salvar</button>
-    </form>
+    <button type="submit">Save Match</button>
+</form>
 
-    <a href="{{ url_for('index') }}">← Voltar</a>
-    {% endblock %}
-    <body onload="updateWinnerOptions()">
+<a href="{{ url_for('index') }}">← Back to Home</a>
 
-    <script>
-        function updateWinnerOptions() {
-            const p1 = document.getElementById('player1').value;
-            const p2 = document.getElementById('player2').value;
-            const winner = document.getElementById('winner');
+<script>
+    function updateWinnerOptions() {
+        const p1Select = document.getElementById('player1_id');
+        const p2Select = document.getElementById('player2_id');
+        const winnerSelect = document.getElementById('winner_id');
 
+        const p1 = p1Select.value;
+        const p2 = p2Select.value;
+        const p1Text = p1Select.options[p1Select.selectedIndex]?.text || '';
+        const p2Text = p2Select.options[p2Select.selectedIndex]?.text || '';
 
-            winner.innerHTML = '';
+        winnerSelect.innerHTML = '<option value="">Select Winner</option>';
 
-
-
-            if (player1) {
-                const opt1 = document.createElement('option');
-                opt1.value = player1;
-                opt1.textContent = player1;
-                winner.appendChild(opt1);
-            }
-
-            if (player2 && player2 !== player1) {
-                const opt2 = document.createElement('option');
-                opt2.value = player2;
-                opt2.textContent = player2;
-                winner.appendChild(opt2);
-            }
+        if (p1) {
+            const opt1 = document.createElement('option');
+            opt1.value = p1;
+            opt1.textContent = p1Text;
+            winnerSelect.appendChild(opt1);
         }
-    </script>
+
+        if (p2 && p2 !== p1) {
+            const opt2 = document.createElement('option');
+            opt2.value = p2;
+            opt2.textContent = p2Text;
+            winnerSelect.appendChild(opt2);
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', updateWinnerOptions);
+</script>
+
+{% endblock %}
 
     

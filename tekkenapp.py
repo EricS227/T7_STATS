@@ -1,40 +1,31 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, jsonify
-import json, os
+import os
 from datetime import datetime
 from utils import (TEKKEN_CHARS, TEKKEN_RANKS, REGIONS, calculate_stats,
                    calculate_matchup_stats, calculate_player_stats,
                    get_used_characters, get_used_character_stats,
                    get_character_image_url)
+# bring in database stuff
+from database import (init_db, get_all_matches, add_match as db_add_match,
+                     get_all_players, add_player as db_add_player,
+                     get_player_by_id, clear_all_matches)
 
 app = Flask(__name__)
-DATA_FILE = 'data/matches.json'
-PLAYERS_FILE = 'data/players.json'
 
-# Make get_character_image_url available in all templates
+# setup the database when we start
+init_db()
+
+# make image function available in templates
 app.jinja_env.globals.update(get_character_image_url=get_character_image_url)
 
-
-def save_matches(matches):
-    os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-    with open(DATA_FILE, 'w') as f:
-        json.dump(matches, f, indent=2)
-
+# quick helpers to load data
 def load_matches():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
-    return []
-
-def save_players(players):
-    os.makedirs(os.path.dirname(PLAYERS_FILE), exist_ok=True)
-    with open(PLAYERS_FILE, 'w') as f:
-        json.dump(players, f, indent=2)
+    """grab all matches from the database"""
+    return get_all_matches()
 
 def load_players():
-    if os.path.exists(PLAYERS_FILE):
-        with open(PLAYERS_FILE, 'r') as f:
-            return json.load(f)
-    return []
+    """grab all players from the database"""
+    return get_all_players()
 
 
 @app.route('/')
@@ -48,9 +39,7 @@ def index():
 @app.route('/add', methods=['GET', 'POST'])
 def add_match():
     if request.method == 'POST':
-        matches = load_matches()
-
-        # Get character selections directly
+        # get what the user picked
         p1_char = request.form['player1']
         p2_char = request.form['player2']
         winner_char = request.form['winner']
@@ -61,13 +50,14 @@ def add_match():
             "player1": p1_char,
             "player2": p2_char,
             "winner": winner_char,
-            # Also add new format for compatibility
+            # storing it both ways just to be safe
             "player1_char": p1_char,
             "player2_char": p2_char,
             "winner_char": winner_char
         }
-        matches.append(new_match)
-        save_matches(matches)
+
+        # throw it in the database
+        db_add_match(new_match)
         return redirect(url_for('index'))
 
     return render_template("add_match.html", chars=TEKKEN_CHARS)
@@ -75,23 +65,116 @@ def add_match():
 
 
 
+# figure out where we're running from so paths work anywhere
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# where to look for character images
 RENDER_PATHS = [
-    "static/renders",
-    "static/renders/tekken7",
-    "static/renders/tekken8"
+    os.path.join(BASE_DIR, "static", "renders"),
+    os.path.join(BASE_DIR, "static", "renders", "tekken7"),
+    os.path.join(BASE_DIR, "static", "renders", "tekken8")
 ]
+
+def generate_placeholder_image(character_name):
+    """make a quick placeholder if we don't have the actual character image"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        # making a 200x200 image with dark colors
+        img = Image.new('RGBA', (200, 200), (30, 30, 40, 255))
+        draw = ImageDraw.Draw(img)
+
+        # draw a red circle
+        draw.ellipse([20, 20, 180, 180], fill=(255, 60, 40, 255))
+
+        # grab the first letter of the character's name
+        initial = character_name[0].upper() if character_name else '?'
+
+        # use arial if we can find it, otherwise whatever's default
+        try:
+            font = ImageFont.truetype("arial.ttf", 80)
+        except:
+            font = ImageFont.load_default()
+
+        # center the text in the circle
+        bbox = draw.textbbox((0, 0), initial, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        text_x = (200 - text_width) // 2
+        text_y = (200 - text_height) // 2 - 10
+
+        draw.text((text_x, text_y), initial, fill=(255, 255, 255, 255), font=font)
+
+        # save it to the renders folder
+        os.makedirs('static/renders', exist_ok=True)
+        placeholder_path = os.path.join('static/renders', f'{character_name.lower()}_placeholder.png')
+        img.save(placeholder_path, 'PNG')
+
+        return placeholder_path
+    except ImportError:
+        # pillow isn't installed
+        return None
+    except Exception as e:
+        # something went wrong
+        print(f"Failed to generate placeholder image for {character_name}: {str(e)}")
+        return None
 
 @app.route("/render/<name>")
 def get_render(name):
-    name = name.lower() + ".png"
+    """
+    serve up character images - tries a few places and falls back to placeholders
 
+    looks for images in this order:
+    1. actual character renders in the folders
+    2. tries .png, .jpg, .jpeg extensions
+    3. generates a placeholder with the character's initial
+    4. worst case just shows the default image
+    """
+    name_lower = name.lower()
+
+    print(f"\n=== Looking for image: {name} (normalized: {name_lower}) ===")
+    print(f"Current working directory: {os.getcwd()}")
+
+    # see if we have an actual image for this character
     for path in RENDER_PATHS:
-        full_path = os.path.join(path, name)
-        if os.path.exists(full_path):
-            return send_from_directory(path, name)
-        
+        for ext in ['.png', '.jpg', '.jpeg']:
+            filename = name_lower + ext
+            full_path = os.path.join(path, filename)
+            abs_full_path = os.path.abspath(full_path)
 
-    return send_from_directory("static/renders", "default.png")
+            print(f"Checking: {full_path}")
+            print(f"  Absolute: {abs_full_path}")
+            print(f"  Exists: {os.path.exists(abs_full_path)}")
+
+            if os.path.exists(abs_full_path):
+                abs_path = os.path.abspath(path)
+                print(f"✓ FOUND! Serving {filename} from {abs_path}")
+                return send_from_directory(abs_path, filename)
+
+    print(f"No image found in paths, trying placeholder generation...")
+
+    # no image found, let's make a placeholder
+    try:
+        placeholder = generate_placeholder_image(name)
+        if placeholder:
+            placeholder_filename = os.path.basename(placeholder)
+            placeholder_path = os.path.join('static', 'renders', placeholder_filename)
+            print(f"Generated placeholder: {placeholder_path}")
+            if os.path.exists(placeholder_path):
+                abs_renders = os.path.abspath('static/renders')
+                print(f"✓ Serving placeholder: {placeholder_filename}")
+                return send_from_directory(abs_renders, placeholder_filename)
+    except Exception as e:
+        print(f"Error generating placeholder for {name}: {e}")
+
+    # ok nothing worked, just show the default
+    print(f"Falling back to default.png")
+    try:
+        abs_renders = os.path.abspath('static/renders')
+        return send_from_directory(abs_renders, 'default.png')
+    except Exception as e:
+        print(f"Error serving default.png: {e}")
+        abort(404)
 
 @app.route('/players')
 def players_list():
@@ -107,7 +190,7 @@ def players_list():
                 'stats': player_stats
             })
 
-    # Sort by wins
+    # put the best players at the top
     player_rankings.sort(key=lambda x: (x['stats']['wins'], float(x['stats']['winrate'].rstrip('%'))), reverse=True)
 
     return render_template('players.html', player_rankings=player_rankings)
@@ -116,8 +199,6 @@ def players_list():
 @app.route('/player/add', methods=['GET', 'POST'])
 def add_player():
     if request.method == 'POST':
-        players = load_players()
-
         new_player = {
             'id': request.form['player_id'],
             'name': request.form['name'],
@@ -126,12 +207,13 @@ def add_player():
             'region': request.form['region']
         }
 
-        # Check if player ID already exists
-        if any(p['id'] == new_player['id'] for p in players):
+        # make sure we don't have this player already
+        existing_player = get_player_by_id(new_player['id'])
+        if existing_player:
             return "Player ID already exists!", 400
 
-        players.append(new_player)
-        save_players(players)
+        # all good, add them
+        db_add_player(new_player)
         return redirect(url_for('players_list'))
 
     return render_template('add_player.html', chars=TEKKEN_CHARS, ranks=TEKKEN_RANKS, regions=REGIONS)
@@ -156,7 +238,7 @@ def matchups():
     matches = load_matches()
     matchup_stats = calculate_matchup_stats(matches)
 
-    # Convert to list and sort by total matches
+    # show the most common matchups first
     matchup_list = list(matchup_stats.values())
     matchup_list.sort(key=lambda x: x['total'], reverse=True)
 
@@ -165,25 +247,25 @@ def matchups():
 
 @app.route('/character-stats')
 def character_stats():
-    """Character statistics page with win rates and popularity"""
+    # just the stats page template
     return render_template('character_stats.html')
 
 
 @app.route('/clear')
 def clear_data():
-    save_matches([])
+    # wipe everything and start fresh
+    clear_all_matches()
     return redirect(url_for('index'))
 
 
 @app.route('/api/stats')
 def api_stats():
-    """API endpoint for chart data - returns only used characters"""
+    # send back chart data for the characters that actually got played
     matches = load_matches()
 
-    # Use the new function to get only used character stats
     used_stats = get_used_character_stats(matches)
 
-    # Prepare data for charts
+    # package it up for chart.js
     char_data = {
         'labels': list(used_stats.keys()),
         'wins': [stats['wins'] for stats in used_stats.values()],
@@ -196,7 +278,7 @@ def api_stats():
 
 @app.route('/api/used-characters')
 def api_used_characters():
-    """API endpoint that returns list of characters that have been used"""
+    # which characters have seen some action
     matches = load_matches()
     used_chars = get_used_characters(matches)
 
@@ -208,11 +290,10 @@ def api_used_characters():
 
 @app.route('/api/character-usage')
 def api_character_usage():
-    """API endpoint showing character usage statistics"""
+    # detailed usage breakdown
     matches = load_matches()
     used_stats = get_used_character_stats(matches)
 
-    # Format for easy consumption
     usage_data = []
     for char, stats in used_stats.items():
         usage_data.append({

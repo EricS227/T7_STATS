@@ -18,14 +18,8 @@ REGIONS = ['North America', 'Europe', 'Asia', 'South America', 'Oceania', 'Afric
 
 
 def get_character_image_url(character_name):
-    """
-    Generate URL for character render image.
-    Converts character name to lowercase and replaces spaces/hyphens with underscores.
-    Examples:
-        'Jin' -> '/render/jin'
-        'Devil Jin' -> '/render/devil_jin'
-        'Jack-7' -> '/render/jack_7'
-    """
+    # converte o nome do personagem pra formato de URL
+    # Jin -> /render/jin, Devil Jin -> /render/devil_jin, etc
     normalized_name = character_name.lower().replace(' ', '_').replace('-', '_')
     return f"/render/{normalized_name}"
 
@@ -34,7 +28,7 @@ def calculate_stats(matches):
     stats = {char: {"wins": 0, "matches": 0, "usage": 0, "winRate": "0%"} for char in TEKKEN_CHARS}
 
     for match in matches:
-        # Support both old format (character names) and new format (player objects)
+        # aceita tanto o formato antigo quanto o novo de partidas
         p1_char = match.get('player1_char', match.get('player1'))
         p2_char = match.get('player2_char', match.get('player2'))
         winner_char = match.get('winner_char', match.get('winner'))
@@ -55,7 +49,7 @@ def calculate_stats(matches):
 
 
 def calculate_matchup_stats(matches):
-    """Calculate win rates for character matchups"""
+    # calcula as taxas de vitória nos confrontos entre personagens
     matchups = {}
 
     for match in matches:
@@ -63,7 +57,7 @@ def calculate_matchup_stats(matches):
         p2_char = match.get('player2_char', match.get('player2'))
         winner_char = match.get('winner_char', match.get('winner'))
 
-        # Create matchup key (always alphabetically sorted to avoid duplicates)
+        # ordena alfabeticamente pra evitar chaves duplicadas
         chars = sorted([p1_char, p2_char])
         key = f"{chars[0]}_vs_{chars[1]}"
 
@@ -83,7 +77,7 @@ def calculate_matchup_stats(matches):
         else:
             matchups[key]['char2_wins'] += 1
 
-    # Calculate win rates
+    # calcula as porcentagens de vitória
     for key in matchups:
         m = matchups[key]
         if m['total'] > 0:
@@ -94,7 +88,7 @@ def calculate_matchup_stats(matches):
 
 
 def calculate_player_stats(player_id, matches, players):
-    """Calculate statistics for a specific player"""
+    # calcula as estatísticas de um jogador específico
     player = next((p for p in players if p['id'] == player_id), None)
     if not player:
         return None
@@ -121,7 +115,7 @@ def calculate_player_stats(player_id, matches, players):
             else:
                 stats['losses'] += 1
 
-            # Track character usage
+            # rastreia quais personagens eles usam
             char_used = match.get('player1_char') if p1_id == player_id else match.get('player2_char')
             if char_used not in stats['character_stats']:
                 stats['character_stats'][char_used] = {'wins': 0, 'matches': 0}
@@ -130,25 +124,23 @@ def calculate_player_stats(player_id, matches, players):
             if winner_id == player_id:
                 stats['character_stats'][char_used]['wins'] += 1
 
-            # Add to recent matches
             stats['recent_matches'].append(match)
 
-    # Calculate winrate
     if stats['total_matches'] > 0:
         stats['winrate'] = f"{(stats['wins'] / stats['total_matches']) * 100:.1f}%"
 
-    # Sort recent matches by timestamp (most recent first)
+    # mantém só as últimas 20 partidas
     stats['recent_matches'] = sorted(
         stats['recent_matches'],
         key=lambda x: x.get('timestamp', 0),
         reverse=True
-    )[:20]  # Keep only last 20 matches
+    )[:20]
 
     return stats
 
 
 def get_used_characters(matches):
-    """Get list of characters that have been used in matches"""
+    # pega a lista de personagens que já foram usados
     used_chars = set()
 
     for match in matches:
@@ -164,17 +156,17 @@ def get_used_characters(matches):
 
 
 def get_used_character_stats(matches):
-    """Get stats for only characters that have been used"""
+    # retorna estatísticas só dos personagens que já foram usados
     all_stats = calculate_stats(matches)
 
-    # Filter to only include characters with matches > 0
+    # filtra personagens com 0 partidas
     used_stats = {
         char: stats
         for char, stats in all_stats.items()
         if stats['matches'] > 0
     }
 
-    # Sort by win rate (descending) then by matches (descending)
+    # ordena por taxa de vitória e depois por partidas
     sorted_stats = dict(sorted(
         used_stats.items(),
         key=lambda x: (float(x[1]['winRate'].rstrip('%')), x[1]['matches']),

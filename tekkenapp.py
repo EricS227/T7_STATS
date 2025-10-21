@@ -15,10 +15,10 @@ app = Flask(__name__)
 # Inicializar o database
 init_db()
 
-# add image url function to templates
+# Adicionar função de imagems URL para os templates
 app.jinja_env.globals.update(get_character_image_url=get_character_image_url)
 
-# Wrapper functions to match old interface
+# Embrulhar funções para combinar com a interface antiga
 def load_matches():
     """Load all matches from SQLite database"""
     return get_all_matches()
@@ -287,4 +287,5 @@ def api_character_usage():
 
 
 if __name__ == '__main__':
+
     app.run(debug=True)

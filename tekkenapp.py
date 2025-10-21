@@ -5,26 +5,26 @@ from utils import (TEKKEN_CHARS, TEKKEN_RANKS, REGIONS, calculate_stats,
                    calculate_matchup_stats, calculate_player_stats,
                    get_used_characters, get_used_character_stats,
                    get_character_image_url)
-# bring in database stuff
+# Importar funções do SQLite Database
 from database import (init_db, get_all_matches, add_match as db_add_match,
                      get_all_players, add_player as db_add_player,
                      get_player_by_id, clear_all_matches)
 
 app = Flask(__name__)
 
-# setup the database when we start
+# Inicializar o database
 init_db()
 
-# make image function available in templates
+# add image url function to templates
 app.jinja_env.globals.update(get_character_image_url=get_character_image_url)
 
-# quick helpers to load data
+# Wrapper functions to match old interface
 def load_matches():
-    """grab all matches from the database"""
+    """Load all matches from SQLite database"""
     return get_all_matches()
 
 def load_players():
-    """grab all players from the database"""
+    """Load all players from SQLite database"""
     return get_all_players()
 
 
@@ -39,7 +39,7 @@ def index():
 @app.route('/add', methods=['GET', 'POST'])
 def add_match():
     if request.method == 'POST':
-        # get what the user picked
+        # Pegar a seleção de personagens
         p1_char = request.form['player1']
         p2_char = request.form['player2']
         winner_char = request.form['winner']
@@ -50,13 +50,13 @@ def add_match():
             "player1": p1_char,
             "player2": p2_char,
             "winner": winner_char,
-            # storing it both ways just to be safe
+            # Manter ambos os formatos para compatibilidade
             "player1_char": p1_char,
             "player2_char": p2_char,
             "winner_char": winner_char
         }
 
-        # throw it in the database
+        # Save to database instead of JSON Salvar no database ao invés de JSON
         db_add_match(new_match)
         return redirect(url_for('index'))
 
@@ -65,38 +65,33 @@ def add_match():
 
 
 
-# figure out where we're running from so paths work anywhere
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# where to look for character images
 RENDER_PATHS = [
-    os.path.join(BASE_DIR, "static", "renders"),
-    os.path.join(BASE_DIR, "static", "renders", "tekken7"),
-    os.path.join(BASE_DIR, "static", "renders", "tekken8")
+    "static/renders",
+    "static/renders/tekken7",
 ]
 
 def generate_placeholder_image(character_name):
-    """make a quick placeholder if we don't have the actual character image"""
+    """Gerar um placeholder para o personagem primeiro"""
     try:
         from PIL import Image, ImageDraw, ImageFont
 
-        # making a 200x200 image with dark colors
+        # Criar imagem com cores que combinam
         img = Image.new('RGBA', (200, 200), (30, 30, 40, 255))
         draw = ImageDraw.Draw(img)
 
-        # draw a red circle
+        # Desenhar um circulo no fundo
         draw.ellipse([20, 20, 180, 180], fill=(255, 60, 40, 255))
 
-        # grab the first letter of the character's name
+        # Pegar a inicial do personagem
         initial = character_name[0].upper() if character_name else '?'
 
-        # use arial if we can find it, otherwise whatever's default
+        # Tenta usar uma fonte, caso o contrário usar a padrão
         try:
             font = ImageFont.truetype("arial.ttf", 80)
         except:
             font = ImageFont.load_default()
 
-        # center the text in the circle
+        # Desenha o texto
         bbox = draw.textbbox((0, 0), initial, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
@@ -105,73 +100,57 @@ def generate_placeholder_image(character_name):
 
         draw.text((text_x, text_y), initial, fill=(255, 255, 255, 255), font=font)
 
-        # save it to the renders folder
+        # Salvar no static/renders se o diretório existir
         os.makedirs('static/renders', exist_ok=True)
         placeholder_path = os.path.join('static/renders', f'{character_name.lower()}_placeholder.png')
         img.save(placeholder_path, 'PNG')
 
         return placeholder_path
     except ImportError:
-        # pillow isn't installed
+        # Se o PIL não estiver disponível, retornar None
         return None
     except Exception as e:
-        # something went wrong
+        # Encontrar erros durante a geração
         print(f"Failed to generate placeholder image for {character_name}: {str(e)}")
         return None
 
 @app.route("/render/<name>")
 def get_render(name):
     """
-    serve up character images - tries a few places and falls back to placeholders
+    Serve character render images with intelligent fallback
 
-    looks for images in this order:
-    1. actual character renders in the folders
-    2. tries .png, .jpg, .jpeg extensions
-    3. generates a placeholder with the character's initial
-    4. worst case just shows the default image
+    Search order:
+    1. Look in all configured RENDER_PATHS for the character image
+    2. Try with .png extension
+    3. Try with .jpg extension
+    4. Generate placeholder if PIL is available
+    5. Fall back to default.png
     """
     name_lower = name.lower()
 
-    print(f"\n=== Looking for image: {name} (normalized: {name_lower}) ===")
-    print(f"Current working directory: {os.getcwd()}")
-
-    # see if we have an actual image for this character
+    # Tenta encontrar a imagem primeiro
     for path in RENDER_PATHS:
         for ext in ['.png', '.jpg', '.jpeg']:
             filename = name_lower + ext
             full_path = os.path.join(path, filename)
-            abs_full_path = os.path.abspath(full_path)
+            if os.path.exists(full_path):
+                return send_from_directory(path, filename)
 
-            print(f"Checking: {full_path}")
-            print(f"  Absolute: {abs_full_path}")
-            print(f"  Exists: {os.path.exists(abs_full_path)}")
-
-            if os.path.exists(abs_full_path):
-                abs_path = os.path.abspath(path)
-                print(f"✓ FOUND! Serving {filename} from {abs_path}")
-                return send_from_directory(abs_path, filename)
-
-    print(f"No image found in paths, trying placeholder generation...")
-
-    # no image found, let's make a placeholder
+    # Tenta gerar o placeholder de forma segura no try-except
     try:
         placeholder = generate_placeholder_image(name)
         if placeholder:
             placeholder_filename = os.path.basename(placeholder)
             placeholder_path = os.path.join('static', 'renders', placeholder_filename)
-            print(f"Generated placeholder: {placeholder_path}")
             if os.path.exists(placeholder_path):
-                abs_renders = os.path.abspath('static/renders')
-                print(f"✓ Serving placeholder: {placeholder_filename}")
-                return send_from_directory(abs_renders, placeholder_filename)
+                return send_from_directory('static/renders', placeholder_filename)
     except Exception as e:
+        # Log error but continue to fallback
         print(f"Error generating placeholder for {name}: {e}")
 
-    # ok nothing worked, just show the default
-    print(f"Falling back to default.png")
+    # Final fallback to default.png - this should always work
     try:
-        abs_renders = os.path.abspath('static/renders')
-        return send_from_directory(abs_renders, 'default.png')
+        return send_from_directory('static/renders', 'default.png')
     except Exception as e:
         print(f"Error serving default.png: {e}")
         abort(404)
@@ -190,7 +169,7 @@ def players_list():
                 'stats': player_stats
             })
 
-    # put the best players at the top
+    # Ordenar por vitórias e depois por taxa de vitória
     player_rankings.sort(key=lambda x: (x['stats']['wins'], float(x['stats']['winrate'].rstrip('%'))), reverse=True)
 
     return render_template('players.html', player_rankings=player_rankings)
@@ -207,12 +186,12 @@ def add_player():
             'region': request.form['region']
         }
 
-        # make sure we don't have this player already
+        # Verificar se o jogador existe
         existing_player = get_player_by_id(new_player['id'])
         if existing_player:
             return "Player ID already exists!", 400
 
-        # all good, add them
+        # Salvar no database
         db_add_player(new_player)
         return redirect(url_for('players_list'))
 
@@ -238,7 +217,7 @@ def matchups():
     matches = load_matches()
     matchup_stats = calculate_matchup_stats(matches)
 
-    # show the most common matchups first
+    # Ordenar pelas matchups mais jogadas
     matchup_list = list(matchup_stats.values())
     matchup_list.sort(key=lambda x: x['total'], reverse=True)
 
@@ -247,25 +226,25 @@ def matchups():
 
 @app.route('/character-stats')
 def character_stats():
-    # just the stats page template
+    # Página de estátiscas dos personagens
     return render_template('character_stats.html')
 
 
 @app.route('/clear')
 def clear_data():
-    # wipe everything and start fresh
+    #  Limpar todas as partidas do database
     clear_all_matches()
     return redirect(url_for('index'))
 
 
 @app.route('/api/stats')
 def api_stats():
-    # send back chart data for the characters that actually got played
+    # Retornar dados de apenas personagens usados
     matches = load_matches()
 
     used_stats = get_used_character_stats(matches)
 
-    # package it up for chart.js
+    # Formato para as tabelas
     char_data = {
         'labels': list(used_stats.keys()),
         'wins': [stats['wins'] for stats in used_stats.values()],
@@ -278,7 +257,7 @@ def api_stats():
 
 @app.route('/api/used-characters')
 def api_used_characters():
-    # which characters have seen some action
+    # Retornar lista dos personagens que foram usados
     matches = load_matches()
     used_chars = get_used_characters(matches)
 
@@ -290,7 +269,7 @@ def api_used_characters():
 
 @app.route('/api/character-usage')
 def api_character_usage():
-    # detailed usage breakdown
+    # Retornar estatisticas de uso dos personagens
     matches = load_matches()
     used_stats = get_used_character_stats(matches)
 

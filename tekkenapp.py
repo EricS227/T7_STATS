@@ -145,10 +145,10 @@ def get_render(name):
             if os.path.exists(placeholder_path):
                 return send_from_directory('static/renders', placeholder_filename)
     except Exception as e:
-        # Log error but continue to fallback
+        #  Log de erro mas continua para o fallback
         print(f"Error generating placeholder for {name}: {e}")
 
-    # Final fallback to default.png - this should always work
+    # Último fallback para o default.png - vai funcionar sempre
     try:
         return send_from_directory('static/renders', 'default.png')
     except Exception as e:
@@ -289,3 +289,4 @@ def api_character_usage():
 if __name__ == '__main__':
 
     app.run(debug=True)
+

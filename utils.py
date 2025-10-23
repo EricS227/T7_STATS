@@ -1,9 +1,10 @@
 TEKKEN_CHARS = [
-    'Akuma', 'Alisa', 'Asuka', 'Bob', 'Bryan', 'Claudio', 'Devil Jin', 'Dragunov',
-    'Eddy', 'Eliza', 'Feng', 'Geese', 'Gigas', 'Heihachi', 'Hwoarang', 'Jack-7', 'Jin',
-    'Josie', 'Katarina', 'Kazumi', 'Kazuya', 'King', 'Kuma', 'Lars', 'Law', 'Lee', 'Lei',
-    'Leo', 'Lili', 'Lucky Chloe', 'Master Raven', 'Miguel', 'Nina', 'Noctis', 'Paul',
-    'Shaheen', 'Steve', 'Xiaoyu', 'Yoshimitsu'
+    'Akuma', 'Alisa', 'Anna', 'Armor King', 'Asuka', 'Bob', 'Bryan', 'Claudio', 'Devil Jin',
+    'Dragunov', 'Eddy', 'Eliza', 'Fahkumram', 'Feng', 'Ganryu', 'Geese', 'Gigas', 'Heihachi',
+    'Hwoarang', 'Jack-7', 'Jin', 'Josie', 'Julia', 'Katarina', 'Kazumi', 'Kazuya', 'King',
+    'Kuma', 'Kunimitsu', 'Lars', 'Law', 'Lee', 'Lei', 'Leo', 'Leroy', 'Lidia', 'Lili',
+    'Lucky Chloe', 'Marduk', 'Master Raven', 'Miguel', 'Negan', 'Nina', 'Noctis', 'Paul',
+    'Shaheen', 'Steve', 'Xiaoyu', 'Yoshimitsu', 'Zafina'
 ]
 
 TEKKEN_RANKS = [

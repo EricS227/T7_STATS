@@ -64,11 +64,11 @@ def create_placeholder(character_name, output_path):
 
     # salva a imagem
     img.save(output_path, 'PNG')
-    print(f"Criado: {output_path}")
+    print(f"✓ Criado: {output_path}")
 
 
 def main():
-    """cria imagens de placeholder pra todos os personagens do Tekken 7"""
+    """cria imagens de placeholder pra todos os personagens"""
 
     from utils import TEKKEN_CHARS
 
@@ -76,7 +76,7 @@ def main():
     output_dir = "static/renders"
     os.makedirs(output_dir, exist_ok=True)
 
-    print("Criando imagens de placeholder pros personagens do Tekken 7...")
+    print("Criando imagens de placeholder pros personagens...")
     print(f"Diretório de saída: {output_dir}")
     print()
 
@@ -88,7 +88,7 @@ def main():
 
         # pula se o arquivo já existir
         if os.path.exists(output_path):
-            print(f"Pulado: {filename} (já existe)")
+            print(f" Pulado: {filename} (já existe)")
             continue
 
         create_placeholder(char, output_path)
@@ -98,21 +98,25 @@ def main():
     if not os.path.exists(default_path):
         create_placeholder('?', default_path)
         print()
-        print(f"Imagem padrão de fallback criada")
+        print(f"✓ Imagem padrão de fallback criada")
 
     print()
     print("=" * 50)
-    print("Pronto! Imagens de placeholder criadas.")
-    print(f"Localização: {os.path.abspath(output_dir)}")
+    print("✅ Pronto! Imagens de placeholder criadas.")
+    print(f"📁 Localização: {os.path.abspath(output_dir)}")
     print()
-    print("Dica: Substitua esses placeholders com renders reais dos personagens pra ficar mais bonito!")
+    print("💡 Dica: Substitua esses placeholders com renders reais")
+    print("   dos personagens pra ficar mais bonito!")
+    print()
+    print("📖 Veja CHARACTER_IMAGES_GUIDE.md pra detalhes sobre")
+    print("   como adicionar renders reais dos personagens.")
 
 
 if __name__ == '__main__':
     try:
         main()
     except ImportError:
-        print("Erro: PIL (Pillow) não instalado.")
+        print("❌ Erro: PIL (Pillow) não instalado.")
         print()
         print("Instala com:")
         print("  pip install Pillow")

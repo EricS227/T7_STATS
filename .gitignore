@@ -1,12 +1,12 @@
-# Byte-compiled / optimized / DLL files
+# Compilação bytes / Otimização / Arquivos DLL
 __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
+# Extensões C
 *.so
 
-# Distribution / packaging
+# Distribuição e empacotamento
 .Python
 build/
 develop-eggs/
@@ -31,11 +31,11 @@ PIPFILE.lock
 *.manifest
 *.spec
 
-# Installer logs
+# Logs de instalação
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# testes unitários / relatórios
 htmlcov/
 .tox/
 .nox/
@@ -49,11 +49,11 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
-# Flask stuff:
+# Flask:
 instance/
 .webassets-cache
 
-# Environments
+# Variáveis de ambiente
 .env
 .venv
 env/
@@ -69,7 +69,7 @@ venv.bak/
 *.swo
 *~
 
-# OS files
+# Arquivos do sistema operacional
 .DS_Store
 Thumbs.db
 
@@ -79,7 +79,7 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Backup files
+# Arquivos de backup
 *.backup
 *.bak
 
@@ -87,6 +87,6 @@ Thumbs.db
 *.log
 logs/
 
-# Project specific
+# Específico do projeto
 data/*.db
 !data/.gitkeep

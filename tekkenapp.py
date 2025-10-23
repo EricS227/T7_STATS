@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, abort, jsonify
 import os
+import logging
 from datetime import datetime
+from dotenv import load_dotenv
 from utils import (TEKKEN_CHARS, TEKKEN_RANKS, REGIONS, calculate_stats,
                    calculate_matchup_stats, calculate_player_stats,
                    get_used_characters, get_used_character_stats,
@@ -10,15 +12,30 @@ from database import (init_db, get_all_matches, add_match as db_add_match,
                      get_all_players, add_player as db_add_player,
                      get_player_by_id, clear_all_matches)
 
+# Carregar variáveis de ambiente
+load_dotenv()
+
+# Configurar o logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
+app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 
 # Inicializar o database
 init_db()
 
-# Adicionar função de imagems URL para os templates
+# adiciona url de imagens ao jinja
 app.jinja_env.globals.update(get_character_image_url=get_character_image_url)
 
-# Embrulhar funções para combinar com a interface antiga
+# Embrulhar funções à interface antiga
 def load_matches():
     """Load all matches from SQLite database"""
     return get_all_matches()
@@ -111,7 +128,7 @@ def generate_placeholder_image(character_name):
         return None
     except Exception as e:
         # Encontrar erros durante a geração
-        print(f"Failed to generate placeholder image for {character_name}: {str(e)}")
+        logger.error(f"Failed to generate placeholder image for {character_name}: {str(e)}")
         return None
 
 @app.route("/render/<name>")
@@ -145,14 +162,14 @@ def get_render(name):
             if os.path.exists(placeholder_path):
                 return send_from_directory('static/renders', placeholder_filename)
     except Exception as e:
-        #  Log de erro mas continua para o fallback
-        print(f"Error generating placeholder for {name}: {e}")
+        # Log error but continue to fallback Erro no log mas continua realizando fallback
+        logger.warning(f"Error generating placeholder for {name}: {e}")
 
-    # Último fallback para o default.png - vai funcionar sempre
+    #  Fallback final para o default.png - funciona sempre
     try:
         return send_from_directory('static/renders', 'default.png')
     except Exception as e:
-        print(f"Error serving default.png: {e}")
+        logger.error(f"Error serving default.png: {e}")
         abort(404)
 
 @app.route('/players')
@@ -189,6 +206,7 @@ def add_player():
         # Verificar se o jogador existe
         existing_player = get_player_by_id(new_player['id'])
         if existing_player:
+            logger.warning(f"Attempt to add duplicate player ID: {new_player['id']}")
             return "Player ID already exists!", 400
 
         # Salvar no database
@@ -287,6 +305,7 @@ def api_character_usage():
 
 
 if __name__ == '__main__':
-
-    app.run(debug=True)
-
+    port = int(os.getenv('FLASK_PORT', 5000))
+    host = os.getenv('FLASK_HOST', '127.0.0.1')
+    logger.info(f"Iniciando Tekken Stats em {host}:{port}")
+    app.run(host=host, port=port, debug=app.config['DEBUG'])

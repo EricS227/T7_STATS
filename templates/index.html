@@ -4,10 +4,8 @@
 
 <div class="nav-links">
     <a href="{{ url_for('character_stats') }}">📊 Character Stats</a>
-    <a href="{{ url_for('players_list') }}">👥 Players</a>
     <a href="{{ url_for('matchups') }}">⚔️ Matchups</a>
     <a href="{{ url_for('add_match') }}">+ Add Match</a>
-    <a href="{{ url_for('add_player') }}">+ Add Player</a>
     <a href="{{ url_for('clear_data') }}" style="color: #ff3c28;">Clear Data</a>
 </div>
 
@@ -17,41 +15,14 @@
         <p class="stat-number">{{ matches|length }}</p>
     </div>
     <div class="stat-card">
-        <h3>Total Players</h3>
-        <p class="stat-number">{{ total_players }}</p>
-    </div>
-    <div class="stat-card">
         <h3>Active Characters</h3>
         <p class="stat-number">{{ stats.values()|selectattr('matches', 'gt', 0)|list|length }}</p>
     </div>
+    <div class="stat-card">
+        <h3>Total Usage</h3>
+        <p class="stat-number">{{ matches|length * 2 }}</p>
+    </div>
 </div>
-
-{% if top_players %}
-<div class="section">
-    <h2>Top Players</h2>
-    <table>
-        <tr>
-            <th>Rank</th>
-            <th>Player</th>
-            <th>Main</th>
-            <th>Wins</th>
-            <th>Matches</th>
-            <th>Winrate</th>
-        </tr>
-        {% for ranking in top_players %}
-        <tr>
-            <td>#{{ loop.index }}</td>
-            <td><a href="{{ url_for('player_profile', player_id=ranking.player.id) }}">{{ ranking.player.name }}</a></td>
-            <td>{{ ranking.player.main_char }}</td>
-            <td>{{ ranking.stats.wins }}</td>
-            <td>{{ ranking.stats.total_matches }}</td>
-            <td>{{ ranking.stats.winrate }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    <a href="{{ url_for('players_list') }}" class="view-all">View All Players →</a>
-</div>
-{% endif %}
 
 <div class="section">
     <h2>Character Statistics</h2>
@@ -68,7 +39,12 @@
         {% for char in chars %}
         {% if stats[char].matches > 0 %}
         <tr>
-            <td>{{ char }}</td>
+            <td>
+                <div class="char-with-image">
+                    <img src="{{ get_character_image_url(char) }}" alt="{{ char }}" class="char-image">
+                    <span class="char-name">{{ char }}</span>
+                </div>
+            </td>
             <td>{{ stats[char].wins }}</td>
             <td>{{ stats[char].matches}}</td>
             <td>{{ stats[char].usage }}</td>

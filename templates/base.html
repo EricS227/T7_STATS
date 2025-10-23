@@ -5,11 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TEKKEN 7 Stats</title>
     <link rel="stylesheet" href="{{url_for('static', filename='style2.css')}}">
+    <link rel="icon" href="{{ url_for('static', filename='jin_tattoo.png') }}" type="image/png">
+
+
+    
 </head>
 <body>
     <div class="container">
-        <h1>TEKKEN 7 Stats</h1>
+        <h1 class="">TEKKEN 7 Stats</h1>
         {% block content %}{% endblock %}
     </div>
 </body>
 </html>
+
+<style>
+
+    .EWGF-ICON {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+    }
+
+    .EWGF-ICON::before {
+        content: "";
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        background-image: url("https://www.ewgf.gg/_next/image?url=%2Fstatic%2FEWGF_ICON%402x.png&w=3840&q=75");
+        background-size: cover;
+
+    }
+</style>

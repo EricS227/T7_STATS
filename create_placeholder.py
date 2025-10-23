@@ -102,24 +102,20 @@ def main():
 
     print()
     print("=" * 50)
-    print("✅ Pronto! Imagens de placeholder criadas.")
-    print(f"📁 Localização: {os.path.abspath(output_dir)}")
+    print("Imagens de placeholder criadas.")
+    print(f"Localização: {os.path.abspath(output_dir)}")
     print()
-    print("💡 Dica: Substitua esses placeholders com renders reais")
-    print("   dos personagens pra ficar mais bonito!")
+    print("Substitua esses placeholders com renders reais")
     print()
-    print("📖 Veja CHARACTER_IMAGES_GUIDE.md pra detalhes sobre")
-    print("   como adicionar renders reais dos personagens.")
 
 
 if __name__ == '__main__':
     try:
         main()
     except ImportError:
-        print("❌ Erro: PIL (Pillow) não instalado.")
+        print(" Erro: PIL (Pillow) não instalado.")
         print()
         print("Instala com:")
         print("  pip install Pillow")
         print()
         print("Ou roda o app sem gerar placeholders.")
-        print("O app funciona de boa só com texto.")
